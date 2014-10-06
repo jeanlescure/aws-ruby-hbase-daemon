@@ -13,6 +13,7 @@ module Hbase
     
     def start
       require_relative "request_handler"
+      require_relative "hbase_handler"
       
       RequestHandler.run!
     end

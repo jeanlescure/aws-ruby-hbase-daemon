@@ -1,8 +1,9 @@
-$LOAD_PATH.unshift File.join("/usr/lib/ruby/gems/1.8/gems/tilt-1.4.1", "lib")
-$LOAD_PATH.unshift File.join("/usr/lib/ruby/gems/1.8/gems/rack-1.5.2", "lib")
-$LOAD_PATH.unshift File.join("/usr/lib/ruby/gems/1.8/gems/rack-protection-1.5.3", "lib")
-$LOAD_PATH.unshift File.join("/usr/lib/ruby/gems/1.8/gems/sinatra-1.4.5", "lib")
+$LOAD_PATH.unshift "/usr/lib/ruby/gems/1.8/gems/tilt-1.4.1/lib"
+$LOAD_PATH.unshift "/usr/lib/ruby/gems/1.8/gems/rack-1.5.2/lib"
+$LOAD_PATH.unshift "/usr/lib/ruby/gems/1.8/gems/rack-protection-1.5.3/lib"
+$LOAD_PATH.unshift "/usr/lib/ruby/gems/1.8/gems/sinatra-1.4.5/lib"
 
+require 'java'
 require 'sinatra/base'
 require 'json'
 
@@ -20,6 +21,37 @@ class RequestHandler < Sinatra::Base
   post '/test' do
     puts "!!!!"
     params[:items]
+  end
+  
+  def s2s(h)
+    Hash === h ? 
+      Hash[
+        h.map do |k, v| 
+          [k.respond_to?(:to_sym) ? k.to_sym : k, s2s(v)] 
+        end 
+      ] : h
+  end
+
+  post '/exec' do
+    handler = Hbase::Handler.new()
+    query = s2s(JSON.parse(params[:query]))
+    puts "!!!!"
+    puts query.inspect
+    result = handler.handle(query)
+    JSON.generate(result)
+  end
+  
+  get '/exec' do
+    handler = Hbase::Handler.new()
+    query = s2s(JSON.parse(params[:query]))
+    puts "!!!!"
+    puts query.inspect
+    result = handler.handle(query)
+    JSON.generate(result)
+  end
+  
+  get '/ping' do
+    JSON.generate([true])
   end
 
   get '/req' do
