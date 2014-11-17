@@ -1,6 +1,12 @@
+require 'json'
+
 module Hbase
   class Handler
+    include HbaseHandlerUtils
+    
     def handle(query)
+      return nil if query.nil?
+      
       send(query[:query_type].to_s, query[:query_hash])
     end
     
@@ -80,27 +86,41 @@ module Hbase
       puts
       $stdout.flush
       
-      JSON.generate ["done"]
-      Result.generate()
+      nil
     end
     
-    def update
-      Result.generate()
+    def update(qhash)
+      raise "Table does not exist!" unless $admin.exists? qhash[:update]
+      
+      update_table = $hbase.table(qhash[:update], $formatter)
+      
+      ids = qhash[:where].map { |val| val[:value] if val[:column] == 'id' }
+      
+      ids.each do |idx|
+        qhash[:set].each do |col_val_pair|
+          update_table.put(idx, "#{qhash[:update]}:#{col_val_pair[:column]}", col_val_pair[:value])
+        end
+      end unless (ids.length == 1 && ids[0].nil?)
+      
+      nil
     end
     
     def select(qhash)
-      get_table = $hbase.table(qhash[:from], $formatter)
-      
       results = []
       opts = {}
       opts['LIMIT'] = qhash[:limit].to_i unless qhash[:limit].nil?
-      opts['COLUMNS'] = qhash[:select].map{ |v| "#{qhash[:from]}:#{v}" } unless qhash[:select][0] == '*'
-      scan_result = get_table.scan(opts)
+      opts['COLUMNS'] = qhash[:select][:columns].map{ |v| "#{qhash[:from]}:#{v}" } if has_column_list?(qhash)
       
-      scan_result.each do |key, value|
-        formatted = scan_format_loop(value)
-        formatted['id'] = key
-        results << formatted
+      
+      qhash[:from].each do |from_table|
+        get_table = $hbase.table(from_table, $formatter)
+        scan_result = get_table.scan(opts)
+        
+        scan_result.each do |key, value|
+          formatted = scan_format_loop(value)
+          formatted['id'] = key
+          results << formatted
+        end
       end
       
       result_from_scan_results(results)

@@ -12,9 +12,11 @@ module Hbase
     end
     
     def start
-      require_relative "request_handler"
+      require_relative "utils"
       require_relative "hbase_handler"
+      require_relative "request_handler"
       
+      RequestHandler.set :port => ENV['RB_DAEMON_PORT']
       RequestHandler.run!
     end
     

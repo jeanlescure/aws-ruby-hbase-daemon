@@ -5,14 +5,16 @@ $LOAD_PATH.unshift "/usr/lib/ruby/gems/1.8/gems/sinatra-1.4.5/lib"
 
 require 'java'
 require 'sinatra/base'
-require 'json'
+require 'mizuno'
+require 'msgpack'
+require 'jruby'
 
 class RequestHandler < Sinatra::Base
   set :bind, '0.0.0.0'
-  set :port, 9090
+  set :server, :mizuno
   
   before do
-    content_type 'application/json'
+    content_type 'plain/text'
   end
   
   
@@ -34,24 +36,24 @@ class RequestHandler < Sinatra::Base
 
   post '/exec' do
     handler = Hbase::Handler.new()
-    query = s2s(JSON.parse(params[:query]))
+    query = s2s(MessagePack.unpack(params[:query]))
     puts "!!!!"
     puts query.inspect
     result = handler.handle(query)
-    JSON.generate(result)
+    MessagePack.pack(result)
   end
   
   get '/exec' do
     handler = Hbase::Handler.new()
-    query = s2s(JSON.parse(params[:query]))
+    query = s2s(MessagePack.unpack(params[:query]))
     puts "!!!!"
     puts query.inspect
     result = handler.handle(query)
-    JSON.generate(result)
+    MessagePack.pack(result)
   end
   
   get '/ping' do
-    JSON.generate([true])
+    MessagePack.pack([true])
   end
 
   get '/req' do
